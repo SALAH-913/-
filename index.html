@@ -1,0 +1,988 @@
+
+<!DOCTYPE html>
+<html lang="ar" dir="rtl" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CompressPro | المنصة الشاملة لضغط وتحويل الملفات والـ PDF والفيديو</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#fff1f2',
+                            100: '#ffe4e6',
+                            500: '#f43f5e',
+                            600: '#e11d48',
+                            700: '#be123c',
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Tajawal', 'Inter', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- Fonts & Icons -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- JSZip for ZIP packaging -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <!-- PDF.js for rendering PDF pages and text extraction -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <!-- PDF-Lib for generating new compressed PDFs -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
+    <!-- Docx.js for creating real docx files -->
+    <script src="https://unpkg.com/docx@8.5.0/build/index.umd.js"></script>
+
+    <style>
+        body { font-family: 'Tajawal', sans-serif; }
+        .drag-active { border-color: #e11d48 !important; background-color: rgba(225, 29, 72, 0.08) !important; }
+        .glass-card { background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(12px); }
+        .dark .glass-card { background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(12px); }
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #94a3b8; border-radius: 4px; }
+        .dark ::-webkit-scrollbar-thumb { background: #334155; }
+        .tool-card.active { border-color: #e11d48; background-color: rgba(225, 29, 72, 0.05); }
+    </style>
+</head>
+<body class="bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-slate-100 min-h-screen flex flex-col transition-colors duration-200">
+
+    <!-- Header Navigation -->
+    <header class="sticky top-0 z-40 w-full border-b border-slate-200 dark:border-slate-800 glass-card">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            <div class="flex items-center gap-3 cursor-pointer" onclick="resetToHome()">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-brand-600 to-rose-500 flex items-center justify-center text-white shadow-lg shadow-brand-600/30">
+                    <i class="fa-solid fa-layer-group text-xl"></i>
+                </div>
+                <div>
+                    <span class="text-xl font-extrabold tracking-tight bg-gradient-to-r from-brand-600 to-rose-500 bg-clip-text text-transparent">CompressPro</span>
+                    <span class="text-xs font-semibold px-2 py-0.5 rounded bg-brand-100 text-brand-700 dark:bg-brand-950/60 dark:text-brand-300 mr-2">الشامل</span>
+                </div>
+            </div>
+
+            <div class="flex items-center gap-3">
+                <button id="themeToggleBtn" class="p-2.5 rounded-xl border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all">
+                    <i id="themeIcon" class="fa-solid fa-moon text-lg"></i>
+                </button>
+                <button onclick="resetToHome()" class="hidden sm:flex items-center gap-2 text-sm font-medium text-slate-600 dark:text-slate-300 hover:text-brand-600 dark:hover:text-brand-400 px-3 py-2">
+                    <i class="fa-solid fa-house"></i>
+                    <span>الرئيسية</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content Area -->
+    <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 flex flex-col">
+
+        <!-- Stage 0: Tool Selector Grid (Home) -->
+        <section id="toolsMenuStage" class="py-6">
+            <div class="text-center max-w-3xl mx-auto mb-10">
+                <h1 class="text-3xl sm:text-4xl font-black text-slate-900 dark:text-white mb-3">مركز معالجة الملفات والـ PDF والفيديوهات</h1>
+                <p class="text-slate-600 dark:text-slate-400 text-base sm:text-lg">اختر الأداة المطلوبة لضغط أو تحويل ملفاتك فورياً داخل المتصفح وبأعلى كفاءة.</p>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                <!-- Tool 1: PDF Compress -->
+                <div onclick="selectMode('compress-pdf')" class="bg-white dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-800 hover:border-brand-500 dark:hover:border-brand-500 rounded-3xl p-6 shadow-lg transition-all duration-300 cursor-pointer flex flex-col items-start group">
+                    <div class="w-14 h-14 rounded-2xl bg-red-50 dark:bg-red-950/50 text-red-600 dark:text-red-400 flex items-center justify-center text-2xl mb-4 group-hover:scale-110 transition-transform">
+                        <i class="fa-solid fa-file-pdf"></i>
+                    </div>
+                    <h3 class="text-xl font-bold text-slate-900 dark:text-white mb-2">ضغط PDF</h3>
+                    <p class="text-xs text-slate-500 dark:text-slate-400">تقليل حجم مستندات الـ PDF مع الحفاظ على وضوح الصفحات.</p>
+                </div>
+
+                <!-- Tool 2: PDF to Word -->
+                <div onclick="selectMode('pdf-to-word')" class="bg-white dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-800 hover:border-brand-500 dark:hover:border-brand-500 rounded-3xl p-6 shadow-lg transition-all duration-300 cursor-pointer flex flex-col items-start group">
+                    <div class="w-14 h-14 rounded-2xl bg-blue-50 dark:bg-blue-950/50 text-blue-600 dark:text-blue-400 flex items-center justify-center text-2xl mb-4 group-hover:scale-110 transition-transform">
+                        <i class="fa-solid fa-file-word"></i>
+                    </div>
+                    <h3 class="text-xl font-bold text-slate-900 dark:text-white mb-2">تحويل PDF إلى Word</h3>
+                    <p class="text-xs text-slate-500 dark:text-slate-400">استخراج النص وإعادة إنشائه في مستند Docx قابل للتعديل.</p>
+                </div>
+
+                <!-- Tool 3: Compress Video -->
+                <div onclick="selectMode('compress-video')" class="bg-white dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-800 hover:border-brand-500 dark:hover:border-brand-500 rounded-3xl p-6 shadow-lg transition-all duration-300 cursor-pointer flex flex-col items-start group">
+                    <div class="w-14 h-14 rounded-2xl bg-purple-50 dark:bg-purple-950/50 text-purple-600 dark:text-purple-400 flex items-center justify-center text-2xl mb-4 group-hover:scale-110 transition-transform">
+                        <i class="fa-solid fa-video"></i>
+                    </div>
+                    <h3 class="text-xl font-bold text-slate-900 dark:text-white mb-2">ضغط وتقليل الفيديوهات</h3>
+                    <p class="text-xs text-slate-500 dark:text-slate-400">تصغير أبعاد الفيديو وخفض الحجم وتغيير معدل البث.</p>
+                </div>
+
+                <!-- Tool 4: Compress Images -->
+                <div onclick="selectMode('compress-image')" class="bg-white dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-800 hover:border-brand-500 dark:hover:border-brand-500 rounded-3xl p-6 shadow-lg transition-all duration-300 cursor-pointer flex flex-col items-start group">
+                    <div class="w-14 h-14 rounded-2xl bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400 flex items-center justify-center text-2xl mb-4 group-hover:scale-110 transition-transform">
+                        <i class="fa-solid fa-file-image"></i>
+                    </div>
+                    <h3 class="text-xl font-bold text-slate-900 dark:text-white mb-2">ضغط الصور</h3>
+                    <p class="text-xs text-slate-500 dark:text-slate-400">ضغط صور JPG، PNG، و WebP بدون فقدان ملموس للجودة.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Stage 1: Upload Dropzone -->
+        <section id="uploadStage" class="hidden flex-1 flex flex-col items-center justify-center py-6">
+            <div class="text-center max-w-2xl mx-auto mb-6">
+                <h2 id="activeToolTitle" class="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white mb-2">ضغط الملفات</h2>
+                <p id="activeToolDesc" class="text-slate-600 dark:text-slate-400 text-sm sm:text-base">اختر أو اسحب الملفات لبدء المعالجة الحقيقية.</p>
+            </div>
+
+            <div id="dropZone" class="w-full max-w-3xl border-2 border-dashed border-slate-300 dark:border-slate-700 hover:border-brand-500 dark:hover:border-brand-500 rounded-3xl p-8 sm:p-12 text-center bg-white dark:bg-slate-900 shadow-xl transition-all duration-300 cursor-pointer flex flex-col items-center group">
+                <input type="file" id="fileInput" multiple class="hidden">
+                
+                <div class="w-20 h-20 mb-6 rounded-2xl bg-brand-50 dark:bg-brand-950/60 border border-brand-100 dark:border-brand-900/50 flex items-center justify-center text-brand-600 dark:text-brand-400 group-hover:scale-110 transition-transform duration-300 shadow-inner">
+                    <i id="dropZoneIcon" class="fa-solid fa-cloud-arrow-up text-4xl"></i>
+                </div>
+
+                <h3 class="text-xl font-bold text-slate-800 dark:text-slate-100 mb-2">اسحب الملفات وأفلتها هنا</h3>
+                <p id="acceptedFormatsText" class="text-sm text-slate-500 dark:text-slate-400 mb-6">يدعم الملفات المطلوبة حسب الأداة</p>
+
+                <button onclick="document.getElementById('fileInput').click()" class="px-8 py-3.5 bg-brand-600 hover:bg-brand-700 text-white font-bold rounded-xl shadow-lg shadow-brand-600/30 hover:shadow-brand-600/50 transition-all flex items-center gap-3">
+                    <i class="fa-solid fa-file-circle-plus text-lg"></i>
+                    <span>اختيار الملفات</span>
+                </button>
+            </div>
+        </section>
+
+        <!-- Stage 2: Configure Stage -->
+        <section id="configStage" class="hidden flex-1 flex flex-col lg:flex-row gap-8">
+            <!-- Left Side: File List & Previews -->
+            <div class="flex-1 flex flex-col gap-4">
+                <div class="flex items-center justify-between pb-2">
+                    <div class="flex items-center gap-3">
+                        <h2 class="text-xl font-bold text-slate-900 dark:text-white">الملفات المحددة</h2>
+                        <span id="fileCountBadge" class="bg-brand-100 dark:bg-brand-950/60 text-brand-700 dark:text-brand-300 text-xs font-bold px-2.5 py-1 rounded-full">0 ملفات</span>
+                    </div>
+                    <button onclick="document.getElementById('fileInput').click()" class="text-sm font-semibold text-brand-600 dark:text-brand-400 hover:underline flex items-center gap-1.5">
+                        <i class="fa-solid fa-plus"></i> إضافة المزيد
+                    </button>
+                </div>
+
+                <div id="fileCardsContainer" class="grid grid-cols-1 md:grid-cols-2 gap-4 max-h-[600px] overflow-y-auto pr-1">
+                    <!-- Cards injected by JS -->
+                </div>
+            </div>
+
+            <!-- Right Side: Compression Controls -->
+            <div class="w-full lg:w-96 flex flex-col">
+                <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 shadow-xl sticky top-24">
+                    <h3 class="text-lg font-bold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
+                        <i class="fa-solid fa-sliders text-brand-600"></i>
+                        <span>إعدادات الخيار المحدد</span>
+                    </h3>
+
+                    <!-- Dynamic Options Area based on Active Tool -->
+                    <div id="dynamicToolOptions" class="space-y-4 mb-6">
+                        <!-- Controls inserted dynamically via JS -->
+                    </div>
+
+                    <!-- Total Size View -->
+                    <div class="border-t border-slate-200 dark:border-slate-800 pt-4 mb-6">
+                        <div class="flex justify-between items-center text-sm">
+                            <span class="text-slate-500 dark:text-slate-400">الحجم الأصلي الإجمالي:</span>
+                            <span id="totalOriginalSizeText" class="font-bold text-slate-800 dark:text-slate-200">0 MB</span>
+                        </div>
+                    </div>
+
+                    <!-- Process Submit Button -->
+                    <button onclick="startProcessing()" class="w-full py-4 bg-brand-600 hover:bg-brand-700 text-white font-black text-base rounded-2xl shadow-lg shadow-brand-600/30 hover:shadow-brand-600/50 transition-all flex items-center justify-center gap-3">
+                        <i class="fa-solid fa-gears"></i>
+                        <span>بدء المعالجة الآن</span>
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- Stage 3: Progress Stage -->
+        <section id="progressStage" class="hidden flex-1 flex flex-col items-center justify-center py-16">
+            <div class="w-full max-w-md bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-8 shadow-2xl text-center">
+                <div class="relative w-24 h-24 mx-auto mb-6 flex items-center justify-center">
+                    <div class="absolute inset-0 rounded-full border-4 border-slate-100 dark:border-slate-800"></div>
+                    <div id="progressSpinner" class="absolute inset-0 rounded-full border-4 border-brand-600 border-t-transparent animate-spin"></div>
+                    <i class="fa-solid fa-bolt text-3xl text-brand-600"></i>
+                </div>
+
+                <h3 class="text-xl font-bold text-slate-900 dark:text-white mb-2">جاري المعالجة وتقليل الحجم...</h3>
+                <p id="progressStatusText" class="text-sm text-slate-500 dark:text-slate-400 mb-6">يتم تنفيذ المعالجة داخل المتصفح</p>
+
+                <div class="w-full bg-slate-100 dark:bg-slate-800 h-3 rounded-full overflow-hidden mb-2">
+                    <div id="progressBarFill" class="bg-gradient-to-r from-brand-600 to-emerald-500 h-full w-0 transition-all duration-300"></div>
+                </div>
+                <div class="flex justify-between text-xs font-bold text-slate-400">
+                    <span id="progressPercentText">0%</span>
+                    <span id="progressFilesDone">0 / 0</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- Stage 4: Result Stage -->
+        <section id="resultStage" class="hidden flex-1 flex flex-col items-center justify-center py-8">
+            <div class="w-full max-w-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-8 sm:p-10 shadow-2xl text-center">
+                
+                <div class="w-20 h-20 bg-emerald-100 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 rounded-full flex items-center justify-center mx-auto mb-6 shadow-inner text-3xl">
+                    <i class="fa-solid fa-circle-check"></i>
+                </div>
+
+                <h2 class="text-3xl font-black text-slate-900 dark:text-white mb-2">اكتملت المعالجة بنجاح!</h2>
+                <p class="text-slate-500 dark:text-slate-400 mb-8">إليك النتائج والملفات الجديدة الناتجة</p>
+
+                <!-- Stats Summary -->
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
+                    <div class="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200/60 dark:border-slate-800">
+                        <span class="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">الحجم الأصلي الإجمالي</span>
+                        <span id="resOriginalSize" class="text-lg font-bold text-slate-800 dark:text-slate-200">0 MB</span>
+                    </div>
+                    <div class="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200/60 dark:border-slate-800">
+                        <span class="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">الحجم الناتج الجديد</span>
+                        <span id="resCompressedSize" class="text-lg font-bold text-emerald-600 dark:text-emerald-400">0 MB</span>
+                    </div>
+                    <div class="p-4 rounded-2xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200/60 dark:border-emerald-900/40">
+                        <span class="block text-xs font-medium text-emerald-600 dark:text-emerald-400 mb-1">نسبة التوفير / النتيجة</span>
+                        <span id="resSavingsPercent" class="text-xl font-black text-emerald-600 dark:text-emerald-400">0%</span>
+                    </div>
+                </div>
+
+                <!-- Download Buttons -->
+                <div class="flex flex-col sm:flex-row gap-4 justify-center mb-10">
+                    <button id="downloadAllZipBtn" onclick="downloadAllAsZip()" class="px-8 py-4 bg-brand-600 hover:bg-brand-700 text-white font-black text-base rounded-2xl shadow-xl shadow-brand-600/30 hover:shadow-brand-600/50 transition-all flex items-center justify-center gap-3">
+                        <i class="fa-solid fa-file-zipper text-lg"></i>
+                        <span>تنزيل جميع الملفات في أرشيف (ZIP)</span>
+                    </button>
+                    <button onclick="resetToHome()" class="px-6 py-4 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold rounded-2xl transition-all flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-house"></i>
+                        <span>العودة للرئيسية</span>
+                    </button>
+                </div>
+
+                <!-- Results Detailed List -->
+                <div class="text-right border-t border-slate-200 dark:border-slate-800 pt-6">
+                    <h4 class="font-bold text-sm text-slate-800 dark:text-slate-200 mb-4">تنزيل الملفات بشكل منفرد:</h4>
+                    <div id="resultFileList" class="space-y-3 max-h-60 overflow-y-auto pr-1">
+                        <!-- Items injected by JS -->
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 py-6 text-center text-xs text-slate-500 dark:text-slate-400">
+        <div class="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-3">
+            <p>© CompressPro. منصة معالجة الـ PDF والفيديو والصور داخل المتصفح.</p>
+            <p class="flex items-center gap-2">
+                <span>PDF-Lib & Docx.js & Canvas Engine</span>
+                <i class="fa-solid fa-bolt text-amber-500"></i>
+            </p>
+        </div>
+    </footer>
+
+    <!-- Hidden Video Canvas Element for Processing -->
+    <canvas id="hiddenVideoCanvas" class="hidden"></canvas>
+
+    <!-- Toast Notification Container -->
+    <div id="toastContainer" class="fixed bottom-5 left-5 z-50 flex flex-col gap-2 pointer-events-none"></div>
+
+    <!-- Application Script -->
+    <script>
+        // PDF.js Worker Configuration
+        if (window.pdfjsLib) {
+            pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+        }
+
+        // App States
+        let currentMode = 'compress-pdf'; // 'compress-pdf', 'pdf-to-word', 'compress-video', 'compress-image'
+        let selectedFiles = [];
+        let processedFiles = [];
+        let customQuality = 0.60;
+        let scaleFactor = 0.75;
+        let videoQualityPreset = 'medium'; // 'low', 'medium', 'high'
+
+        // DOM References
+        const toolsMenuStage = document.getElementById('toolsMenuStage');
+        const uploadStage = document.getElementById('uploadStage');
+        const configStage = document.getElementById('configStage');
+        const progressStage = document.getElementById('progressStage');
+        const resultStage = document.getElementById('resultStage');
+        const fileInput = document.getElementById('fileInput');
+        const dropZone = document.getElementById('dropZone');
+        const fileCardsContainer = document.getElementById('fileCardsContainer');
+        const dynamicToolOptions = document.getElementById('dynamicToolOptions');
+
+        window.onload = function() {
+            setupEventListeners();
+            initTheme();
+        };
+
+        function initTheme() {
+            const themeToggleBtn = document.getElementById('themeToggleBtn');
+            const themeIcon = document.getElementById('themeIcon');
+            
+            themeToggleBtn.addEventListener('click', () => {
+                if (document.documentElement.classList.contains('dark')) {
+                    document.documentElement.classList.remove('dark');
+                    themeIcon.className = 'fa-solid fa-sun text-lg text-amber-500';
+                } else {
+                    document.documentElement.classList.add('dark');
+                    themeIcon.className = 'fa-solid fa-moon text-lg';
+                }
+            });
+        }
+
+        function setupEventListeners() {
+            ['dragenter', 'dragover'].forEach(eventName => {
+                dropZone.addEventListener(eventName, (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    dropZone.classList.add('drag-active');
+                }, false);
+            });
+
+            ['dragleave', 'drop'].forEach(eventName => {
+                dropZone.addEventListener(eventName, (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    dropZone.classList.remove('drag-active');
+                }, false);
+            });
+
+            dropZone.addEventListener('drop', (e) => {
+                const dt = e.dataTransfer;
+                handleFileSelection(dt.files);
+            });
+
+            fileInput.addEventListener('change', (e) => {
+                handleFileSelection(e.target.files);
+            });
+        }
+
+        function selectMode(mode) {
+            currentMode = mode;
+            selectedFiles = [];
+
+            const title = document.getElementById('activeToolTitle');
+            const desc = document.getElementById('activeToolDesc');
+            const formats = document.getElementById('acceptedFormatsText');
+            const icon = document.getElementById('dropZoneIcon');
+
+            if (mode === 'compress-pdf') {
+                title.textContent = 'ضغط ملفات PDF';
+                desc.textContent = 'تقليل حجم ملفات الـ PDF بإعادة معالجة دقة الصفحة داخلياً.';
+                formats.textContent = 'الملفات المدعومة: PDF فقط';
+                fileInput.accept = 'application/pdf';
+                icon.className = 'fa-solid fa-file-pdf text-4xl';
+            } else if (mode === 'pdf-to-word') {
+                title.textContent = 'تحويل PDF إلى Word (.docx)';
+                desc.textContent = 'استخراج النصوص وتمريرها في ملف Docx قابل للتعديل.';
+                formats.textContent = 'الملفات المدعومة: PDF فقط';
+                fileInput.accept = 'application/pdf';
+                icon.className = 'fa-solid fa-file-word text-4xl';
+            } else if (mode === 'compress-video') {
+                title.textContent = 'ضغط وتقليل حجم الفيديو';
+                desc.textContent = 'إعادة ضبط أبعاد ودقة مقاطع الفيديو بخواص Canvas و MediaRecorder.';
+                formats.textContent = 'الملفات المدعومة: MP4, WebM';
+                fileInput.accept = 'video/mp4,video/webm';
+                icon.className = 'fa-solid fa-video text-4xl';
+            } else if (mode === 'compress-image') {
+                title.textContent = 'ضغط الصور الحقيقي';
+                desc.textContent = 'تقليل الجودة والأبعاد لصور JPG, PNG, WebP.';
+                formats.textContent = 'الملفات المدعومة: JPG, PNG, WebP';
+                fileInput.accept = 'image/jpeg,image/png,image/webp';
+                icon.className = 'fa-solid fa-image text-4xl';
+            }
+
+            renderToolControls();
+            switchStage('upload');
+        }
+
+        function renderToolControls() {
+            dynamicToolOptions.innerHTML = '';
+
+            if (currentMode === 'compress-pdf' || currentMode === 'compress-image') {
+                dynamicToolOptions.innerHTML = `
+                    <div class="space-y-4">
+                        <div>
+                            <div class="flex justify-between items-center mb-1">
+                                <span class="text-xs font-bold text-slate-700 dark:text-slate-300">مستوى الضغط / الجودة</span>
+                                <span id="qualityValText" class="text-xs font-bold text-brand-600 dark:text-brand-400">60%</span>
+                            </div>
+                            <input type="range" id="qualityRange" min="10" max="90" value="60" oninput="updateQuality(this.value)" class="w-full accent-brand-600 cursor-pointer">
+                        </div>
+                        <div>
+                            <div class="flex justify-between items-center mb-1">
+                                <span class="text-xs font-bold text-slate-700 dark:text-slate-300">أبعاد الصورة / الـ DPI</span>
+                                <span id="scaleValText" class="text-xs font-bold text-brand-600 dark:text-brand-400">75%</span>
+                            </div>
+                            <input type="range" id="scaleRange" min="30" max="100" value="75" oninput="updateScale(this.value)" class="w-full accent-brand-600 cursor-pointer">
+                        </div>
+                    </div>
+                `;
+            } else if (currentMode === 'compress-video') {
+                dynamicToolOptions.innerHTML = `
+                    <div class="space-y-3">
+                        <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1">جودة وضغط الفيديو</label>
+                        <select id="videoPresetSelect" onchange="videoQualityPreset = this.value" class="w-full p-3 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm font-bold text-slate-800 dark:text-slate-100">
+                            <option value="medium" selected>ضغط متوازن (دقة 50% / البث متوسط)</option>
+                            <option value="low">ضغط أقصى (دقة 30% / البث منخفض)</option>
+                            <option value="high">ضغط خفيف (دقة 75% / جودة عالية)</option>
+                        </select>
+                    </div>
+                `;
+            } else if (currentMode === 'pdf-to-word') {
+                dynamicToolOptions.innerHTML = `
+                    <div class="p-3.5 bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-900/40 rounded-2xl text-xs text-blue-700 dark:text-blue-300 font-medium leading-relaxed">
+                        <i class="fa-solid fa-circle-info ml-1"></i>
+                        سيتم استخراج النصوص المكتوبة من ملف الـ PDF وتصديرها ضمن ملف Word (بامتداد .docx) جديد جاهز للتعديل.
+                    </div>
+                `;
+            }
+        }
+
+        function updateQuality(val) {
+            customQuality = parseFloat(val) / 100;
+            const el = document.getElementById('qualityValText');
+            if (el) el.textContent = `${val}%`;
+        }
+
+        function updateScale(val) {
+            scaleFactor = parseFloat(val) / 100;
+            const el = document.getElementById('scaleValText');
+            if (el) el.textContent = `${val}%`;
+        }
+
+        function handleFileSelection(filesList) {
+            if (!filesList || filesList.length === 0) return;
+
+            let addedCount = 0;
+            Array.from(filesList).forEach(file => {
+                if (!selectedFiles.some(f => f.name === file.name && f.size === file.size)) {
+                    let previewUrl = null;
+                    if (file.type.startsWith('image/') || file.type.startsWith('video/')) {
+                        previewUrl = URL.createObjectURL(file);
+                    }
+
+                    selectedFiles.push({
+                        fileObject: file,
+                        name: file.name,
+                        size: file.size,
+                        type: file.type,
+                        previewUrl: previewUrl
+                    });
+                    addedCount++;
+                }
+            });
+
+            if (addedCount > 0) {
+                showToast(`تمت إضافة ${addedCount} ملفات`, 'success');
+                renderFileCards();
+                switchStage('config');
+            }
+            fileInput.value = '';
+        }
+
+        function renderFileCards() {
+            fileCardsContainer.innerHTML = '';
+            document.getElementById('fileCountBadge').textContent = `${selectedFiles.length} ملفات`;
+            let totalSize = 0;
+
+            selectedFiles.forEach((item, index) => {
+                totalSize += item.size;
+                const card = document.createElement('div');
+                card.className = "bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 flex items-center justify-between shadow-sm relative overflow-hidden group";
+
+                const fileIcon = getFileIcon(item.type, item.name);
+                let previewHTML = `<div class="w-12 h-12 rounded-xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-600 dark:text-slate-300 shrink-0 text-xl"><i class="${fileIcon}"></i></div>`;
+                
+                if (item.previewUrl && item.type.startsWith('image/')) {
+                    previewHTML = `<img src="${item.previewUrl}" class="w-12 h-12 rounded-xl object-cover shrink-0 border border-slate-200 dark:border-slate-700">`;
+                }
+
+                card.innerHTML = `
+                    <div class="flex items-center gap-3 min-w-0 flex-1">
+                        ${previewHTML}
+                        <div class="min-w-0 flex-1 pr-1">
+                            <h4 class="font-bold text-sm text-slate-800 dark:text-slate-100 truncate">${escapeHtml(item.name)}</h4>
+                            <div class="flex items-center gap-3 text-xs text-slate-500 dark:text-slate-400 mt-1">
+                                <span>الحجم: ${formatBytes(item.size)}</span>
+                            </div>
+                        </div>
+                    </div>
+                    <button onclick="removeFile(${index})" class="p-2 text-slate-400 hover:text-rose-500 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors mr-2">
+                        <i class="fa-solid fa-trash-can"></i>
+                    </button>
+                `;
+                fileCardsContainer.appendChild(card);
+            });
+
+            document.getElementById('totalOriginalSizeText').textContent = formatBytes(totalSize);
+        }
+
+        function removeFile(index) {
+            const item = selectedFiles[index];
+            if (item && item.previewUrl) URL.revokeObjectURL(item.previewUrl);
+            selectedFiles.splice(index, 1);
+            if (selectedFiles.length === 0) {
+                switchStage('upload');
+            } else {
+                renderFileCards();
+            }
+        }
+
+        function getFileIcon(mimeType, filename) {
+            if (mimeType.startsWith('image/')) return 'fa-solid fa-image text-emerald-500';
+            if (mimeType.startsWith('video/')) return 'fa-solid fa-video text-purple-500';
+            if (mimeType === 'application/pdf' || filename.toLowerCase().endsWith('.pdf')) return 'fa-solid fa-file-pdf text-red-500';
+            return 'fa-solid fa-file text-slate-400';
+        }
+
+        function switchStage(stageName) {
+            toolsMenuStage.classList.add('hidden');
+            uploadStage.classList.add('hidden');
+            configStage.classList.add('hidden');
+            progressStage.classList.add('hidden');
+            resultStage.classList.add('hidden');
+
+            if (stageName === 'home') toolsMenuStage.classList.remove('hidden');
+            if (stageName === 'upload') uploadStage.classList.remove('hidden');
+            if (stageName === 'config') configStage.classList.remove('hidden');
+            if (stageName === 'progress') progressStage.classList.remove('hidden');
+            if (stageName === 'result') resultStage.classList.remove('hidden');
+        }
+
+        function resetToHome() {
+            selectedFiles.forEach(item => {
+                if (item.previewUrl) URL.revokeObjectURL(item.previewUrl);
+            });
+            selectedFiles = [];
+            processedFiles = [];
+            switchStage('home');
+        }
+
+        async function startProcessing() {
+            if (selectedFiles.length === 0) return;
+
+            switchStage('progress');
+            processedFiles = [];
+
+            const total = selectedFiles.length;
+            const progressBarFill = document.getElementById('progressBarFill');
+            const progressPercentText = document.getElementById('progressPercentText');
+            const progressFilesDone = document.getElementById('progressFilesDone');
+            const progressStatusText = document.getElementById('progressStatusText');
+
+            for (let i = 0; i < total; i++) {
+                const item = selectedFiles[i];
+                progressStatusText.textContent = `جاري معالجة: ${item.name}`;
+
+                try {
+                    let outBlob;
+                    let outExt = null;
+
+                    if (currentMode === 'compress-pdf') {
+                        outBlob = await processCompressPdf(item.fileObject);
+                    } else if (currentMode === 'pdf-to-word') {
+                        outBlob = await processPdfToWord(item.fileObject);
+                        outExt = 'docx';
+                    } else if (currentMode === 'compress-video') {
+                        outBlob = await processCompressVideo(item.fileObject);
+                    } else if (currentMode === 'compress-image') {
+                        outBlob = await processCompressImage(item.fileObject);
+                    }
+
+                    const outputName = getOutputName(item.name, outExt || getExtFromMime(outBlob.type));
+
+                    processedFiles.push({
+                        name: outputName,
+                        originalSize: item.size,
+                        compressedSize: outBlob.size,
+                        blob: outBlob,
+                        type: outBlob.type
+                    });
+
+                } catch (err) {
+                    console.error('Processing error:', err);
+                    processedFiles.push({
+                        name: item.name,
+                        originalSize: item.size,
+                        compressedSize: item.size,
+                        blob: item.fileObject,
+                        type: item.type
+                    });
+                }
+
+                const pct = Math.round(((i + 1) / total) * 100);
+                progressBarFill.style.width = `${pct}%`;
+                progressPercentText.textContent = `${pct}%`;
+                progressFilesDone.textContent = `${i + 1} / ${total}`;
+
+                await new Promise(r => setTimeout(r, 100));
+            }
+
+            renderResultsScreen();
+            switchStage('result');
+        }
+
+        // --- 1. REAL PDF COMPRESSION ---
+        async function processCompressPdf(file) {
+            if (!window.pdfjsLib || !window.PDFLib) throw new Error("Missing PDF libraries");
+
+            const arrayBuffer = await file.arrayBuffer();
+            const pdfDoc = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+            const numPages = pdfDoc.numPages;
+
+            const newPdfDoc = await PDFLib.PDFDocument.create();
+
+            for (let i = 1; i <= numPages; i++) {
+                const page = await pdfDoc.getPage(i);
+                const originalViewport = page.getViewport({ scale: 1.0 });
+                const renderScale = Math.max(0.4, scaleFactor * 1.2);
+                const viewport = page.getViewport({ scale: renderScale });
+
+                const canvas = document.createElement('canvas');
+                canvas.width = viewport.width;
+                canvas.height = viewport.height;
+                const ctx = canvas.getContext('2d');
+
+                await page.render({ canvasContext: ctx, viewport: viewport }).promise;
+
+                const imgDataUrl = canvas.toDataURL('image/jpeg', customQuality);
+                const imgBytes = await fetch(imgDataUrl).then(res => res.arrayBuffer());
+
+                const embeddedImg = await newPdfDoc.embedJpg(imgBytes);
+                const newPage = newPdfDoc.addPage([originalViewport.width, originalViewport.height]);
+
+                newPage.drawImage(embeddedImg, {
+                    x: 0,
+                    y: 0,
+                    width: originalViewport.width,
+                    height: originalViewport.height,
+                });
+            }
+
+            const pdfBytes = await newPdfDoc.save();
+            return new Blob([pdfBytes], { type: 'application/pdf' });
+        }
+
+        // --- 2. PDF TO WORD (.DOCX) CONVERSION ---
+        async function processPdfToWord(file) {
+            if (!window.pdfjsLib || !window.docx) throw new Error("Missing conversion libraries");
+
+            const arrayBuffer = await file.arrayBuffer();
+            const pdfDoc = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+            const numPages = pdfDoc.numPages;
+
+            const { Document, Paragraph, TextRun, Packer } = window.docx;
+            const docParagraphs = [];
+
+            for (let i = 1; i <= numPages; i++) {
+                const page = await pdfDoc.getPage(i);
+                const textContent = await page.getTextContent();
+                
+                let pageText = textContent.items.map(item => item.str).join(' ');
+                if (!pageText.trim()) {
+                    pageText = `[صفحة ${i}: نص غير قابل للاستخراج المباشر أو عبارة عن صورة ممسوحة]`;
+                }
+
+                docParagraphs.push(
+                    new Paragraph({
+                        children: [
+                            new TextRun({
+                                text: `--- صفحة ${i} ---`,
+                                bold: true,
+                                size: 24,
+                            }),
+                        ],
+                    }),
+                    new Paragraph({
+                        children: [
+                            new TextRun({
+                                text: pageText,
+                                size: 22,
+                            }),
+                        ],
+                    })
+                );
+            }
+
+            const doc = new Document({
+                sections: [{
+                    properties: {},
+                    children: docParagraphs,
+                }],
+            });
+
+            const docxBlob = await Packer.toBlob(doc);
+            return docxBlob;
+        }
+
+        // --- 3. VIDEO COMPRESSION (Canvas + MediaRecorder) ---
+        function processCompressVideo(file) {
+            return new Promise((resolve, reject) => {
+                const video = document.createElement('video');
+                video.src = URL.createObjectURL(file);
+                video.muted = true;
+                video.playsInline = true;
+
+                video.onloadeddata = () => {
+                    let scale = 0.5;
+                    let bitRate = 800000;
+
+                    if (videoQualityPreset === 'low') { scale = 0.35; bitRate = 400000; }
+                    if (videoQualityPreset === 'high') { scale = 0.75; bitRate = 1500000; }
+
+                    const canvas = document.getElementById('hiddenVideoCanvas');
+                    const w = Math.round(video.videoWidth * scale);
+                    const h = Math.round(video.videoHeight * scale);
+                    canvas.width = w;
+                    canvas.height = h;
+
+                    const ctx = canvas.getContext('2d');
+                    const stream = canvas.captureStream(24);
+
+                    let recorder;
+                    try {
+                        recorder = new MediaRecorder(stream, {
+                            mimeType: 'video/webm',
+                            videoBitsPerSecond: bitRate
+                        });
+                    } catch(e) {
+                        recorder = new MediaRecorder(stream);
+                    }
+
+                    const chunks = [];
+                    recorder.ondataavailable = e => chunks.push(e.data);
+                    recorder.onstop = () => {
+                        URL.revokeObjectURL(video.src);
+                        const compressedBlob = new Blob(chunks, { type: 'video/webm' });
+                        resolve(compressedBlob);
+                    };
+
+                    recorder.start();
+                    video.play();
+
+                    function drawFrame() {
+                        if (video.paused || video.ended) {
+                            recorder.stop();
+                            return;
+                        }
+                        ctx.drawImage(video, 0, 0, w, h);
+                        requestAnimationFrame(drawFrame);
+                    }
+                    drawFrame();
+                };
+
+                video.onerror = (e) => reject(e);
+            });
+        }
+
+        // --- 4. IMAGE COMPRESSION ENGINE ---
+        function processCompressImage(file) {
+            return new Promise((resolve, reject) => {
+                const img = new Image();
+                const url = URL.createObjectURL(file);
+
+                img.onload = () => {
+                    URL.revokeObjectURL(url);
+                    const canvas = document.createElement('canvas');
+
+                    let width = Math.max(1, Math.round(img.width * scaleFactor));
+                    let height = Math.max(1, Math.round(img.height * scaleFactor));
+
+                    canvas.width = width;
+                    canvas.height = height;
+
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0, width, height);
+
+                    let outType = file.type;
+                    if (file.type === 'image/png' && customQuality < 0.9) {
+                        outType = 'image/jpeg';
+                    }
+
+                    canvas.toBlob((blob) => {
+                        if (blob) resolve(blob);
+                        else reject(new Error('فشل ضغط الصورة'));
+                    }, outType, customQuality);
+                };
+
+                img.onerror = (e) => {
+                    URL.revokeObjectURL(url);
+                    reject(e);
+                };
+
+                img.src = url;
+            });
+        }
+
+        function getOutputName(originalName, targetExt) {
+            const parts = originalName.split('.');
+            if (parts.length > 1) parts.pop();
+            const base = parts.join('.');
+            return `${base}_processed.${targetExt}`;
+        }
+
+        function getExtFromMime(mime) {
+            if (mime.includes('pdf')) return 'pdf';
+            if (mime.includes('word') || mime.includes('officedocument')) return 'docx';
+            if (mime.includes('webm')) return 'webm';
+            if (mime.includes('mp4')) return 'mp4';
+            if (mime.includes('jpeg')) return 'jpg';
+            if (mime.includes('png')) return 'png';
+            return 'file';
+        }
+
+        function renderResultsScreen() {
+            let totalOrig = 0;
+            let totalComp = 0;
+
+            const resultFileList = document.getElementById('resultFileList');
+            resultFileList.innerHTML = '';
+
+            processedFiles.forEach((fileItem, idx) => {
+                totalOrig += fileItem.originalSize;
+                totalComp += fileItem.compressedSize;
+
+                const savedPct = fileItem.originalSize > 0 
+                    ? Math.max(0, Math.round(((fileItem.originalSize - fileItem.compressedSize) / fileItem.originalSize) * 100))
+                    : 0;
+
+                const row = document.createElement('div');
+                row.className = "flex items-center justify-between p-3.5 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-200/60 dark:border-slate-800";
+                
+                row.innerHTML = `
+                    <div class="flex items-center gap-3 min-w-0 flex-1">
+                        <i class="fa-solid fa-file-arrow-down text-brand-600 dark:text-brand-400 text-lg shrink-0"></i>
+                        <div class="min-w-0 flex-1">
+                            <h5 class="font-bold text-xs text-slate-800 dark:text-slate-200 truncate">${escapeHtml(fileItem.name)}</h5>
+                            <div class="flex items-center gap-2 text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+                                <span>${formatBytes(fileItem.originalSize)} $\rightarrow$ <strong class="text-emerald-600 dark:text-emerald-400">${formatBytes(fileItem.compressedSize)}</strong></span>
+                                <span class="bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-400 px-1.5 py-0.2 rounded font-bold">${currentMode === 'pdf-to-word' ? 'تم التحويل' : `توفير ${savedPct}%`}</span>
+                            </div>
+                        </div>
+                    </div>
+                    <button onclick="downloadSingleFile(${idx})" class="px-3 py-1.5 bg-brand-50 hover:bg-brand-100 dark:bg-brand-950/60 dark:hover:bg-brand-900/80 text-brand-700 dark:text-brand-300 rounded-xl text-xs font-bold transition-colors flex items-center gap-1.5">
+                        <i class="fa-solid fa-download"></i>
+                        <span>تنزيل</span>
+                    </button>
+                `;
+                resultFileList.appendChild(row);
+            });
+
+            const overallSavedPct = totalOrig > 0 
+                ? Math.max(0, Math.round(((totalOrig - totalComp) / totalOrig) * 100))
+                : 0;
+
+            document.getElementById('resOriginalSize').textContent = formatBytes(totalOrig);
+            document.getElementById('resCompressedSize').textContent = formatBytes(totalComp);
+            document.getElementById('resSavingsPercent').textContent = currentMode === 'pdf-to-word' ? '100%' : `${overallSavedPct}%`;
+        }
+
+        function downloadSingleFile(index) {
+            const item = processedFiles[index];
+            if (!item) return;
+
+            const url = URL.createObjectURL(item.blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = item.name;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+
+            showToast(`تم تنزيل ${item.name}`, 'info');
+        }
+
+        async function downloadAllAsZip() {
+            if (processedFiles.length === 0) return;
+
+            if (processedFiles.length === 1) {
+                downloadSingleFile(0);
+                return;
+            }
+
+            const downloadBtn = document.getElementById('downloadAllZipBtn');
+            const origText = downloadBtn.innerHTML;
+            downloadBtn.innerHTML = `<i class="fa-solid fa-spinner animate-spin"></i> <span>جاري إنشاء أرشيف ZIP...</span>`;
+            downloadBtn.disabled = true;
+
+            try {
+                const zip = new JSZip();
+                processedFiles.forEach(fileItem => {
+                    zip.file(fileItem.name, fileItem.blob);
+                });
+
+                const content = await zip.generateAsync({ type: "blob" });
+                const url = URL.createObjectURL(content);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `CompressPro_Output_${Date.now()}.zip`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+
+                showToast('تم التحميل بنجاح!', 'success');
+            } catch (err) {
+                console.error('ZIP Error:', err);
+                showToast('حدث خطأ أثناء التجميع', 'danger');
+            } finally {
+                downloadBtn.innerHTML = origText;
+                downloadBtn.disabled = false;
+            }
+        }
+
+        function formatBytes(bytes, decimals = 2) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const dm = decimals < 0 ? 0 : decimals;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.innerText = text;
+            return div.innerHTML;
+        }
+
+        function showToast(message, type = 'info') {
+            const container = document.getElementById('toastContainer');
+            const toast = document.createElement('div');
+
+            let bgClasses = 'bg-slate-900 text-white';
+            if (type === 'success') bgClasses = 'bg-emerald-600 text-white';
+            if (type === 'danger') bgClasses = 'bg-rose-600 text-white';
+
+            toast.className = `pointer-events-auto px-4 py-3 rounded-2xl shadow-xl text-xs font-bold flex items-center gap-2 transform transition-all duration-300 translate-y-4 opacity-0 ${bgClasses}`;
+            toast.innerHTML = `
+                <i class="fa-solid fa-circle-info"></i>
+                <span>${escapeHtml(message)}</span>
+            `;
+
+            container.appendChild(toast);
+
+            setTimeout(() => {
+                toast.classList.remove('translate-y-4', 'opacity-0');
+            }, 10);
+
+            setTimeout(() => {
+                toast.classList.add('opacity-0', 'translate-y-4');
+                setTimeout(() => toast.remove(), 300);
+            }, 3500);
+        }
+    </script>
+</body>
+</html>
